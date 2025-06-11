@@ -8,3 +8,5 @@ sqlalchemy
 pydantic-settings
 python-docx
 python-multipart
+psycopg[binary]
+python-jose[cryptography]

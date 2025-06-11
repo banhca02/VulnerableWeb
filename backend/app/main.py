@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from urllib.parse import urlparse
 
-from app.api import user, quiz, word
+from app.api import user
 
 app = FastAPI(
     title="User Management API",
@@ -12,42 +12,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
-def is_allowed_subdomain(origin: str) -> bool:
-    try:
-        parsed_url = urlparse(origin)
-        hostname = parsed_url.hostname
-        return (
-            hostname == "localhost" or
-            hostname == "mydomain.com" or
-            hostname.endswith(".mydomain.com")
-        )
-    except Exception:
-        return False
-
-class CustomCORSMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        origin = request.headers.get("origin")
-
-        if origin and not is_allowed_subdomain(origin):
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "Origin not allowed"}
-            )
-
-        response: Response = await call_next(request)
-
-        if origin and is_allowed_subdomain(origin):
-            response.headers["Access-Control-Allow-Origin"] = origin
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-
-        return response
-
-# Gắn middleware đã tự định nghĩa
-app.add_middleware(CustomCORSMiddleware)
-
 # Đăng ký router
 app.include_router(user.router, prefix="/api")
-app.include_router(quiz.router)
-app.include_router(word.router)
+
+
+origins_list = [
+    "http://localhost",
+    "http://localhost:5173", # Nếu frontend của bạn chạy ở đây
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000", # Nếu frontend của bạn chạy ở đây
+    # Thêm bất kỳ origin nào khác mà frontend của bạn có thể từ đó truy cập API
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],  # Quan trọng: cho phép OPTIONS và các methods khác
+    allow_headers=["*"],  # Quan trọng: cho phép các headers cần thiết cho preflight
+    max_age=600,          # Khuyên dùng: cache preflight response trong 10 phút
+)
+
